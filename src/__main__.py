@@ -87,6 +87,7 @@ parser = ArgParser('The Extensible X Display Manager',
                    None, None, True, None)
 
 parser.add_argumented(['-c', '--configurations'], 0, 'FILE', 'Select configuration file')
+parser.add_argumented(['-x', '--x-argument'], 0, 'ARG', 'Pass an argument on to the X server')
 parser.add_argumentless(['-h', '-?', '--help'], 0, 'Print this help information')
 parser.add_argumentless(['-C', '--copying', '--copyright'], 0, 'Print copyright information')
 parser.add_argumentless(['-W', '--warranty'], 0, 'Print non-warranty information')
@@ -163,7 +164,7 @@ if os.path.exists(authfile):
         mit_cookie = file.read().decode('utf-8', 'strict').strip()
 else:
     digits = '0123456789abcedf'
-    mit_cookie = ''.join(digits[random.randint(0, 15)] for i in range(64))
+    mit_cookie = ''.join(digits[random.randint(0, 15)] for i in range(32))
 os.environ['XAUTHORITY'] = authfile
 os.putenv('XAUTHORITY', os.environ['XAUTHORITY']) # just to be on the safe side
 
@@ -204,6 +205,8 @@ if display == 256:
 display = ':%i' % display
 
 
+
+# [X is running] || $ X ${display} vt${vt} -auth ${authfile}
 
 
 
