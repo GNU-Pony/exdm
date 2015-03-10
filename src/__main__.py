@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'''
+copyright = '''
 exdm – The Extensible X Display Manager
 
 Copyright © 2015  Mattias Andrée (maandree@member.fsf.org)
@@ -23,6 +23,8 @@ import sys
 import random
 from subprocess import Popen, PIPE
 
+from argparser import *
+
 
 
 RUNDIR = '/run' # @@
@@ -35,12 +37,94 @@ PKGNAME = 'exdm' # @@
 :str  The name of the page as installed
 '''
 
+PROGRAM_NAME = 'exdm' # @@
+'''
+:str  The name of the program
+'''
+
+PROGRAM_VERSION = '0' # @@
+'''
+:str  The version of the program
+'''
+
+
+
+
+# Set process title
+def setproctitle(title):
+    '''
+    Set process title
+    
+    @param  title:str  The title of the process
+    '''
+    import ctypes
+    try:
+        # Remove path, keep only the file,
+        # otherwise we get really bad effects, namely
+        # the name title is truncates by the number
+        # of slashes in the title. At least that is
+        # the observed behaviour when using procps-ng.
+        title = title.split('/')[-1]
+        # Create strng buffer with title
+        title = title.encode(sys.getdefaultencoding(), 'replace')
+        title = ctypes.create_string_buffer(title)
+        if 'linux' in sys.platform:
+            # Set process title on Linux
+            libc = ctypes.cdll.LoadLibrary('libc.so.6')
+            libc.prctl(15, ctypes.byref(title), 0, 0, 0)
+        elif 'bsd' in sys.platform:
+            # Set process title on at least FreeBSD
+            libc = ctypes.cdll.LoadLibrary('libc.so.7')
+            libc.setproctitle(ctypes.create_string_buffer(b'-%s'), title)
+    except:
+        pass
+setproctitle(sys.argv[0])
+
+
+# Read command line arguments
+parser = ArgParser('The Extensible X Display Manager',
+                   sys.argv[0] + ' vt$VT [VARIABLE=VALUE]* [option]*',
+                   None, None, True, None)
+
+parser.add_argumented(['-c', '--configurations'], 0, 'FILE', 'Select configuration file')
+parser.add_argumentless(['-h', '-?', '--help'], 0, 'Print this help information')
+parser.add_argumentless(['-C', '--copying', '--copyright'], 0, 'Print copyright information')
+parser.add_argumentless(['-W', '--warranty'], 0, 'Print non-warranty information')
+parser.add_argumentless(['-v', '--version'], 0, 'Print program name and version')
+
+parser.parse()
+parser.support_alternatives()
+
+# Check for no-action options
+if parser.opts['--help'] is not None:
+    parser.help()
+    sys.exit(0)
+elif parser.opts['--copyright'] is not None:
+    print(copyright[1 : -1])
+    sys.exit(0)
+elif parser.opts['--warranty'] is not None:
+    print(copyright.split('\n\n')[3])
+    sys.exit(0)
+elif parser.opts['--version'] is not None:
+    print('%s %s' % (PROGRAM_NAME, PROGRAM_VERSION))
+    sys.exit(0)
+
 
 
 # Test that the user is root
 if not os.getuid() == 0:
-    print('%s: this program can only be ran by root' % sys.argv[0], file = sys.stderr)
+    print('%s: this program can only be run by root' % sys.argv[0], file = sys.stderr)
     sys.exit(1)
+
+
+# Set environment
+env = [a for a in parser.files if ('=' in a) and (a[0] not in '-+')]
+env = [(a.split('=')[0], '='.join(a.split('=')[1:])) for a in env]
+for var, val in env:
+    os.environ[var] = val
+    os.putenv(var, val) # just to be on the safe side
+    del var, val
+del env
 
 
 # Get virtual terminal
@@ -50,14 +134,14 @@ def is_numeral(text : str) -> bool:
         return True
     except:
         return False
-vt = [int(a[2:]) for a in sys.argv[1:] if a.startswith('vt') and is_numeral(a[2:])]
+vt = [int(a[2:]) for a in parser.files if a.startswith('vt') and is_numeral(a[2:])]
 vt = [a for a in vt if 0 < a < 64]
 if len(vt) == 1:
     [vt] = vt
 else:
     proc = Popen(['fgconsole', '--next-available'], stdin = sys.stdin, sysout = PIPE)
     vt = int(proc.communicate()[0].decode('utf-8', 'strict').strip())
-print('%s: opening exdm on vt%i' % (sys.argv[0], vt), file = sys.stderr)
+print('%s: opening %s on vt%i' % (sys.argv[0], PROGRAM_NAME, vt), file = sys.stderr)
 
 
 # Get hostname
@@ -132,7 +216,4 @@ try:
     os.unlink(authfile)
 except:
     pass
-
-
-# sessreg
 

@@ -1,2 +1,20 @@
 ANSI escape sequences support + \e]P
+/dev/kmsg
+clock
+hostname
+window manager
+faces
+auth::pam
+auth::crypt
+auth::shadow
+volume control
+blueshift
+$ shutdown -r now    # reboot
+$ shutdown -rf now   # reboot and force fsck
+$ shutdown -h now    # halt
+$ shutdown -hH now   # drop into boot monitor
+locale
+keyboard
+lastlogin
+sessreg
 

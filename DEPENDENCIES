@@ -1,5 +1,7 @@
 python3
+argparser-python
 xorg-xauth
+xorg-server
 coreutils
 grep
 sed
