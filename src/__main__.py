@@ -118,12 +118,26 @@ if not os.getuid() == 0:
     sys.exit(1)
 
 
+def setenv(variable : str, value : str):
+    '''
+    Set an environment variable
+    
+    @param  variable:str  The variable's name
+    @param  value:str?    The variable's new value, `None` to delete it
+    '''
+    if value is not None:
+        os.environ[variable] = value
+        os.putenv(variable, value) # just to be on the safe side
+    else:
+        del os.environ[variable]
+        os.unsetenv(variable) # just to be on the safe side
+
+
 # Set environment
 env = [a for a in parser.files if ('=' in a) and (a[0] not in '-+')]
 env = [(a.split('=')[0], '='.join(a.split('=')[1:])) for a in env]
 for var, val in env:
-    os.environ[var] = val
-    os.putenv(var, val) # just to be on the safe side
+    setenv(var, val)
     del var, val
 del env
 
@@ -165,8 +179,7 @@ if os.path.exists(authfile):
 else:
     digits = '0123456789abcedf'
     mit_cookie = ''.join(digits[random.randint(0, 15)] for i in range(32))
-os.environ['XAUTHORITY'] = authfile
-os.putenv('XAUTHORITY', os.environ['XAUTHORITY']) # just to be on the safe side
+setenv('XAUTHORITY', authfile)
 
 
 # Get X display index
