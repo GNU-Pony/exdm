@@ -55,7 +55,7 @@ setproctitle(sys.argv[0])
 
 # Read command line arguments
 parser = ArgParser('The Extensible X Display Manager',
-                   sys.argv[0] + ' vt$VT [VARIABLE=VALUE]* [option]*',
+                   sys.argv[0] + ' [vt$VT] [VARIABLE=VALUE]... [option]...',
                    None, None, True, None)
 
 parser.add_argumented(  ['-c', '--configurations'],         0, 'FILE', 'Select configuration file')
