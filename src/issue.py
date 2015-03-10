@@ -23,17 +23,17 @@ import sys
 from subprocess import Popen, PIPE
 
 
-SYSCONFDIR = '/etc'
+SYSCONFDIR = '/etc' # @@
 '''
 :str  The installed system's path for /etc
 '''
 
-ISSUE_FILE = SYSCONFDIR + '/issue'
+ISSUE_FILE = SYSCONFDIR + '/issue' # @@
 '''
 :str  The pathname of the issue file
 '''
 
-DEFAULT_ISSUE_FILE = ISSUE_FILE + '.default'
+DEFAULT_ISSUE_FILE = ISSUE_FILE + '.default' # @@
 '''
 :str  The pathname of the default issue file
 '''
