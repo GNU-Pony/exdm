@@ -18,13 +18,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
+
 PROGRAM_NAME = 'exdm' # @@
 '''
 :str  The name of the program
 '''
 
 
-def set_environment_from_cmdline(cmdline : ArgParser):
+
+def set_environment_from_cmdline(cmdline):
     '''
     Set up environment variables according to the command line
     
@@ -35,7 +37,7 @@ def set_environment_from_cmdline(cmdline : ArgParser):
         setenv(var, val)
 
 
-def get_virtual_terminal(cmdline : ArgParser) -> int:
+def get_virtual_terminal(cmdline) -> int:
     '''
     Get which virtual terminal the X servers should use
     
@@ -46,6 +48,7 @@ def get_virtual_terminal(cmdline : ArgParser) -> int:
     '''
     import sys
     from subprocess import Popen, PIPE
+    from util import setenv
     vt = [int(a[2:]) for a in cmdline.files if a.startswith('vt') and is_numeral(a[2:])]
     vt = [a for a in vt if 0 < a < 64]
     if len(vt) == 1:
@@ -76,6 +79,7 @@ def get_mit_cookie(authfile : str) -> str:
     @return  :str          The cookie, it is 32 digits lowercase hexadecimal
     '''
     import os
+    from xauth import generate_mit_cookie
     if os.path.exists(authfile + '.raw'):
         # Incase the program crashed and was respawned
         with open(authfile + '.raw', 'rb') as file:
@@ -83,4 +87,23 @@ def get_mit_cookie(authfile : str) -> str:
     else:
         mit_cookie = generate_mit_cookie()
     return mit_cookie
+
+
+def configure_signals(signal_handler : callable):
+    '''
+    Configure signals
+    
+    @param  signal_handler:(signal:int, stack)→void  Function to call when the display
+                                                     manager should exit because of a signal
+    '''
+    import signal
+    def signal_do_nothing(signal, stack):
+        signal.signal(signal.SIGUSR1, signal_do_nothing)
+    signal.signal(signal.SIGQUIT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGKILL, signal_handler)
+    signal.signal(signal.SIGINT,  signal_handler)
+    signal.signal(signal.SIGHUP,  signal_handler)
+    signal.signal(signal.SIGPIPE, signal_handler)
+    signal.signal(signal.SIGUSR1, signal_do_nothing)
 

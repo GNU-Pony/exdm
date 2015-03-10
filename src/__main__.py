@@ -18,23 +18,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import sys
+import os, sys
 
 from argparser import *
 
 from util import *
+from misc import *
+from xauth import *
+from xserver import *
 
 
-
-RUNDIR = '/run' # @@
-'''
-:str  The installed system's path for /run
-'''
-
-PKGNAME = 'exdm' # @@
-'''
-:str  The name of the page as installed
-'''
 
 PROGRAM_NAME = 'exdm' # @@
 '''
@@ -55,7 +48,7 @@ setproctitle(sys.argv[0])
 
 # Read command line arguments
 parser = ArgParser('The Extensible X Display Manager',
-                   sys.argv[0] + ' [vt$VT] [VARIABLE=VALUE]... [option]...',
+                   sys.argv[0] + ' [vt$VT] [VARIABLE=VALUE]... [OPTION]...',
                    None, None, True, None)
 
 parser.add_argumented(  ['-c', '--configurations'],         0, 'FILE', 'Select configuration file')
@@ -87,23 +80,25 @@ elif parser.opts['--version'] is not None:
 # Check that the user is root
 check_root_uid()
 
+# Configure signal
+configure_signals(lambda sig, frame : sys.exit(1)) # TODO stop server
+
 # Set environment
 set_environment_from_cmdline(parser)
 
 # Get virtual terminal
-vt = get_virtual_terminal(parser)
+get_virtual_terminal(parser)
 
 # Get display
-authfile = '%s/%s.vt%i.auth' % (RUNDIR, PKGNAME, vt)
-if get_display(authfile) is None:
+if get_display() is None:
     sys.exit(1)
 
 
 
-# [X is running] || $ X ${DISPLAY} vt${vt} -auth ${authfile}
-
+# [X is running] ||
+server_pid = fork_exec_xserver(parser)
 
 
 # Remove server authentication
-remove_authentication_file(authfile)
+remove_authentication_file()
 

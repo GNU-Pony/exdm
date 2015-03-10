@@ -19,6 +19,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 
+RUNDIR = '/run' # @@
+'''
+:str  The installed system's path for /run
+'''
+
+PKGNAME = 'exdm' # @@
+'''
+:str  The name of the page as installed
+'''
+
+
+
 def generate_mit_cookie() -> str:
     '''
     Generate MIT-MAGIC-COOKIE-1 key for X server authentication
@@ -39,7 +51,7 @@ def get_display_with_cookie(mit_cookie : str, default_display = None) -> int:
     '''
     import sys
     from subprocess import Popen, PIPE
-    from util import *
+    from util import get_hostname
     command = 'xauth list | grep "^%s/unix:" | grep "[[:space:]]%s$" | cut -f 1 | cut -d ' ' -f 1 | sed 1q'
     command %= (get_hostname(), mit_cookie)
     command = ['sh', '-c', command]
@@ -63,7 +75,7 @@ def create_authentication_file(authfile : str, display : int, mit_cookie : str) 
     '''
     import sys
     from subprocess import Popen, PIPE
-    from util import *
+    from util import get_hostname
     
     # Attempt to create authentication file
     proc = Popen(['xauth', '-f', authfile, '-q'], stdin = PIPE, stdout = sys.stdout, stderr = sys.stderr)
@@ -79,16 +91,15 @@ def create_authentication_file(authfile : str, display : int, mit_cookie : str) 
     return test_cookie == mit_cookie
 
 
-def remove_authentication_file(authfile : str):
+def remove_authentication_file():
     '''
     Remove server authentication
     
-    The environment variable DISPLAY must be set
-    
-    @param  authfile:str  The authentication file
+    The environment variables XAUTHORITY and DISPLAY must be set
     '''
     import os, sys
     from subprocess import Popen, PIPE
+    authfile = os.environ['XAUTHORITY']
     proc = Popen(['xauth', '-f', authfile, '-q'], stdin = PIPE, stdout = sys.stdout, stderr = sys.stderr)
     proc.stdin.write(('remove %s\n' % os.environ['DISPLAY']).encode('utf-8'))
     proc.stdin.write(('exit %s\n').encode('utf-8'))
@@ -103,21 +114,24 @@ def remove_authentication_file(authfile : str):
         pass
 
 
-def get_display(authfile : str) -> str:
+def get_display() -> str:
     '''
     Select display, create cookie and create authentication file
     
     This function will set the environent variables XAUTHORITY and DISPLAY
     
-    @param   authfile:str      The authentication file
     @return  :mit_cookie:str?  The cookie, `None` on failure
     '''
     import os
-    from util import *
+    from util import setenv
+    from misc import get_mit_cookie
     
-    # Get and export cookie
-    mit_cookie = get_mit_cookie(authfile)
+    # Get and export authentication file
+    authfile = '%s/%s.vt%s.auth' % (RUNDIR, PKGNAME, os.environ['XDG_VTNR'])
     setenv('XAUTHORITY', authfile)
+    
+    # Get cookie
+    mit_cookie = get_mit_cookie(authfile)
     
     # Store authentication cookie
     with open(authfile + '.raw', 'wb', opener = lambda p, f : os.open(p, f, mode = 0o600)) as file:
