@@ -20,10 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import sys
-import random
 from subprocess import Popen, PIPE
 
 from argparser import *
+
+from util import *
 
 
 
@@ -51,33 +52,6 @@ PROGRAM_VERSION = '0' # @@
 
 
 # Set process title
-def setproctitle(title):
-    '''
-    Set process title
-    
-    @param  title:str  The title of the process
-    '''
-    import ctypes
-    try:
-        # Remove path, keep only the file,
-        # otherwise we get really bad effects, namely
-        # the name title is truncates by the number
-        # of slashes in the title. At least that is
-        # the observed behaviour when using procps-ng.
-        title = title.split('/')[-1]
-        # Create strng buffer with title
-        title = title.encode(sys.getdefaultencoding(), 'replace')
-        title = ctypes.create_string_buffer(title)
-        if 'linux' in sys.platform:
-            # Set process title on Linux
-            libc = ctypes.cdll.LoadLibrary('libc.so.6')
-            libc.prctl(15, ctypes.byref(title), 0, 0, 0)
-        elif 'bsd' in sys.platform:
-            # Set process title on at least FreeBSD
-            libc = ctypes.cdll.LoadLibrary('libc.so.7')
-            libc.setproctitle(ctypes.create_string_buffer(b'-%s'), title)
-    except:
-        pass
 setproctitle(sys.argv[0])
 
 
@@ -112,110 +86,23 @@ elif parser.opts['--version'] is not None:
 
 
 
-# Test that the user is root
-if not os.getuid() == 0:
-    print('%s: this program can only be run by root' % sys.argv[0], file = sys.stderr)
-    sys.exit(1)
-
-
-def setenv(variable : str, value : str):
-    '''
-    Set an environment variable
-    
-    @param  variable:str  The variable's name
-    @param  value:str?    The variable's new value, `None` to delete it
-    '''
-    if value is not None:
-        os.environ[variable] = value
-        os.putenv(variable, value) # just to be on the safe side
-    else:
-        del os.environ[variable]
-        os.unsetenv(variable) # just to be on the safe side
-
+# Check that the user is root
+check_root_uid()
 
 # Set environment
-env = [a for a in parser.files if ('=' in a) and (a[0] not in '-+')]
-env = [(a.split('=')[0], '='.join(a.split('=')[1:])) for a in env]
-for var, val in env:
-    setenv(var, val)
-    del var, val
-del env
-
+set_environment_from_cmdline(parser)
 
 # Get virtual terminal
-def is_numeral(text : str) -> bool:
-    try:
-        int(text)
-        return True
-    except:
-        return False
-vt = [int(a[2:]) for a in parser.files if a.startswith('vt') and is_numeral(a[2:])]
-vt = [a for a in vt if 0 < a < 64]
-if len(vt) == 1:
-    [vt] = vt
-else:
-    proc = Popen(['fgconsole', '--next-available'], stdin = sys.stdin, sysout = PIPE)
-    vt = int(proc.communicate()[0].decode('utf-8', 'strict').strip())
-print('%s: opening %s on vt%i' % (sys.argv[0], PROGRAM_NAME, vt), file = sys.stderr)
+vt = get_virtual_terminal(parser)
 
-
-# Get hostname
-command = ['hostname']
-if os.uname().sysname.startswith('Linux'):
-    proc = Popen(command + ['--version'], stdout = PIPE, stderr = PIPE)
-    out, err = proc.communicate()
-    if 'GNU' not in (out + err):
-        command.append('-f')
-proc = Popen(command, stdout = PIPE, stderr = sys.stderr)
-hostname = proc.communicate()[0]
-
-
-# Create server authentication cookie
-authfile = '%s/%s.vt%i.auth' % (rundir, pkgname, vt)
-if os.path.exists(authfile):
-    # Incase the program crashed and was respawned
-    with open(authfile, 'rb') as file:
-        mit_cookie = file.read().decode('utf-8', 'strict').strip()
-else:
-    digits = '0123456789abcedf'
-    mit_cookie = ''.join(digits[random.randint(0, 15)] for i in range(32))
-setenv('XAUTHORITY', authfile)
-
-
-# Get X display index
-command = 'xauth list | grep "^%s/unix:" | grep "[[:space:]]%s$" | cut -f 1 | cut -d ' ' -f 1 | sed 1q'
-command %= (hostname, mit_cookie)
-command = ['sh', '-c', command]
-proc = Popen(command, stdout = PIPE, stderr = sys.stderr)
-display = proc.communicate()[0].decode('utf-8', 'strict').strip()
-if len(display) == 0:
-    display = 0
-else:
-    display = int(display.split(':')[-1])
-
-# Create server authentication file
-while display < 256:
-    # Attempt to create authentication file
-    proc = Popen(['xauth', '-f', authfile, '-q'], stdin = PIPE, stdout = sys.stdout, stderr = sys.stderr)
-    proc.stdin.write(('add :%i . %s\n' % (display, mit_cookie)).encode('utf-8'))
-    proc.stdin.write(('exit %s\n').encode('utf-8'))
-    proc.wait()
-    
-    # Test that we were successful
-    command = 'xauth list | sed -n "s/^%s\/unix:%i[[:space:]*].*[[:space:]*]//p"'
-    command = ['sh', '-c', command % (hostname, display)]
-    proc = Popen(command, stdout = PIPE, stderr = sys.stderr)
-    test_cookie = proc.communicate()[0].decode('utf-8', 'strict').strip()
-    if test_cookie == mit_cookie:
-        break
-    else:
-        display += 1
-if display == 256:
-    print('%s: fail to find an unused display, stopped at 256' % sys.argv[0], file = sys.stderr)
+# Get display
+authfile = '%s/%s.vt%i.auth' % (RUNDIR, PKGNAME, vt)
+(display, _mit_cookie) = get_display(authfile)
+if display is None:
     sys.exit(1)
+setenv('DISPLAY', display)
+del _mit_cookie
 
-# Convert `display` to a $DISPLAY string
-display = ':%i' % display
 
 
 
@@ -224,12 +111,5 @@ display = ':%i' % display
 
 
 # Remove server authentication
-proc = Popen(['xauth', '-f', authfile, '-q'], stdin = PIPE, stdout = sys.stdout, stderr = sys.stderr)
-proc.stdin.write(('remove %s\n' % display).encode('utf-8'))
-proc.stdin.write(('exit %s\n').encode('utf-8'))
-proc.wait()
-try:
-    os.unlink(authfile)
-except:
-    pass
+remove_authentication_file(authfile)
 

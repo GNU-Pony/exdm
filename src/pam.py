@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# -*- python -*-
 '''
 exdm – The Extensible X Display Manager
 
