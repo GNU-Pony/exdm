@@ -39,6 +39,8 @@ def get_virtual_terminal(cmdline : ArgParser) -> int:
     '''
     Get which virtual terminal the X servers should use
     
+    This function will set the environment variable XDG_VTNR
+    
     @param   cmdline:ArgParser  The command line parser
     @return  :int               The virtual terminal the X servers should use
     '''
@@ -51,6 +53,7 @@ def get_virtual_terminal(cmdline : ArgParser) -> int:
     else:
         proc = Popen(['fgconsole', '--next-available'], stdin = sys.stdin, sysout = PIPE)
         vt = int(proc.communicate()[0].decode('utf-8', 'strict').strip())
+    setenv('XDG_VTNR', str(vt))
     print('%s: opening %s on vt%i' % (sys.argv[0], PROGRAM_NAME, vt), file = sys.stderr)
     return vt
 
@@ -73,9 +76,9 @@ def get_mit_cookie(authfile : str) -> str:
     @return  :str          The cookie, it is 32 digits lowercase hexadecimal
     '''
     import os
-    if os.path.exists(authfile):
+    if os.path.exists(authfile + '.raw'):
         # Incase the program crashed and was respawned
-        with open(authfile, 'rb') as file:
+        with open(authfile + '.raw', 'rb') as file:
             mit_cookie = file.read().decode('utf-8', 'strict').strip()
     else:
         mit_cookie = generate_mit_cookie()

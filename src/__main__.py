@@ -18,9 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import os
 import sys
-from subprocess import Popen, PIPE
 
 from argparser import *
 
@@ -97,16 +95,12 @@ vt = get_virtual_terminal(parser)
 
 # Get display
 authfile = '%s/%s.vt%i.auth' % (RUNDIR, PKGNAME, vt)
-(display, _mit_cookie) = get_display(authfile)
-if display is None:
+if get_display(authfile) is None:
     sys.exit(1)
-setenv('DISPLAY', display)
-del _mit_cookie
 
 
 
-
-# [X is running] || $ X ${display} vt${vt} -auth ${authfile}
+# [X is running] || $ X ${DISPLAY} vt${vt} -auth ${authfile}
 
 
 

@@ -97,20 +97,31 @@ def remove_authentication_file(authfile : str):
         os.unlink(authfile)
     except:
         pass
+    try:
+        os.unlink(authfile + '.raw')
+    except:
+        pass
 
 
-def get_display(authfile : str) -> tuple:
+def get_display(authfile : str) -> str:
     '''
     Select display, create cookie and create authentication file
     
-    @param   authfile:str                     The authentication file
-    @return  :(display:str?, mit_cookie:str)  The display name (`None` on failure) and cookie
+    This function will set the environent variables XAUTHORITY and DISPLAY
+    
+    @param   authfile:str      The authentication file
+    @return  :mit_cookie:str?  The cookie, `None` on failure
     '''
     import os
     from util import *
     
+    # Get and export cookie
     mit_cookie = get_mit_cookie(authfile)
     setenv('XAUTHORITY', authfile)
+    
+    # Store authentication cookie
+    with open(authfile + '.raw', 'wb', opener = lambda p, f : os.open(p, f, mode = 0o600)) as file:
+        file.write(mit_cookie.encode('utf-8'))
     
     # Get preliminary X display index
     display = get_display_with_cookie(mit_cookie, 0)
@@ -125,9 +136,8 @@ def get_display(authfile : str) -> tuple:
         print('%s: fail to find an unused display, stopped at 256' % sys.argv[0], file = sys.stderr)
         return (None, mit_cookie)
     
-    # Convert `display` to a $DISPLAY string, and export
-    display = ':%i' % display
-    setenv('DISPLAY', display)
+    # Export $DISPLAY
+    setenv('DISPLAY', ':%i' % display)
     
-    return (display, mit_cookie)
+    return mit_cookie
 
