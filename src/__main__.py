@@ -74,6 +74,7 @@ hostname = proc.communicate()[0]
 # Create server authentication cookie
 authfile = '%s/%s.vt%i.auth' % (rundir, pkgname, vt)
 if os.path.exists(authfile):
+    # Incase the program crashed and was respawned
     with open(authfile, 'rb') as file:
         mit_cookie = file.read().decode('utf-8', 'strict').strip()
 else:
