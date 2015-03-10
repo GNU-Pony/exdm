@@ -60,12 +60,12 @@ parser = ArgParser('The Extensible X Display Manager',
                    sys.argv[0] + ' vt$VT [VARIABLE=VALUE]* [option]*',
                    None, None, True, None)
 
-parser.add_argumented(['-c', '--configurations'], 0, 'FILE', 'Select configuration file')
-parser.add_argumented(['-x', '--x-argument'], 0, 'ARG', 'Pass an argument on to the X server')
-parser.add_argumentless(['-h', '-?', '--help'], 0, 'Print this help information')
-parser.add_argumentless(['-C', '--copying', '--copyright'], 0, 'Print copyright information')
-parser.add_argumentless(['-W', '--warranty'], 0, 'Print non-warranty information')
-parser.add_argumentless(['-v', '--version'], 0, 'Print program name and version')
+parser.add_argumented(  ['-c', '--configurations'],         0, 'FILE', 'Select configuration file')
+parser.add_argumented(  ['-x', '--x-argument'],             0, 'ARG',  'Pass an argument on to the X server')
+parser.add_argumentless(['-h', '-?', '--help'],             0,         'Print this help information')
+parser.add_argumentless(['-C', '--copying', '--copyright'], 0,         'Print copyright information')
+parser.add_argumentless(['-W', '--warranty'],               0,         'Print non-warranty information')
+parser.add_argumentless(['-v', '--version'],                0,         'Print program name and version')
 
 parser.parse()
 parser.support_alternatives()
