@@ -13,8 +13,14 @@ $ shutdown -r now    # reboot
 $ shutdown -rf now   # reboot and force fsck
 $ shutdown -h now    # halt
 $ shutdown -hH now   # drop into boot monitor
+[pm-is-supported --suspend]         $ pm-suspend "${PM_SUSPEND_QUIRKS[@]/^/--quirk-}"
+[pm-is-supported --suspend-hybrid]  $ pm-suspend-hybrid "${PM_SUSPEND_QUIRKS[@]/^/--quirk-}"
+[pm-is-supported --hibernate]       $ pm-hibernate
+$ pm-powersave true
+$ pm-powersave false
 locale
 keyboard
 lastlogin
 sessreg
+guests
 
