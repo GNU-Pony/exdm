@@ -97,6 +97,11 @@ if get_display() is None:
 
 # [X is running] ||
 server_pid = fork_exec_xserver(parser)
+if timedwaitpid(server_pid, 0) is None:
+    if not connect(): # TODO
+        stop_server() # TODO
+        print('%s: unable to connect to X server' % sys.argv[0], file = sys.stderr)
+        sys.exit(1)
 
 
 # Remove server authentication
