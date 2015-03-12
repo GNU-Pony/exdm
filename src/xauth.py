@@ -38,7 +38,7 @@ def generate_mit_cookie() -> str:
     @return  :str  The generated cookie, it is 32 digits lowercase hexadecimal
     '''
     import random
-    return ''.join('0123456789abcedf'[random.randint(0, 15)] for i in range(32))
+    return ''.join('0123456789abcdef'[random.randint(0, 15)] for i in range(32))
 
 
 def get_display_with_cookie(mit_cookie : str, default_display = None) -> int:
