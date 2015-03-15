@@ -80,17 +80,24 @@ class Issue:
             return p.rstrip('\n')
         buf = ''
         esc = False
+        skip_arg = False
         inet = lambda ip, face = '' : sh("ifconfig %s | grep '^ *%s ' | grep -Po '%s [^ ]*' | cut -d ' ' -f 2 | sed 1q" % (face, ip, ip))
         uname = os.uname()
         for i in range(len(issue_data)):
             c = issue_data[i]
             i += 1
+            if skip_arg:
+                if c == '}':
+                    skip_arg = False
+                continue
             d = '\n' if i == len(issue_data) else issue_data[i]
             def get_arg():
+                nonlocal skip_arg
                 arg = ''
                 for j in range(i, len(issue_data)):
                     arg += issue_data[j]
                     if arg[-1] == '}':
+                        skip_arg = True
                         return arg[1 : -1]
                 return ''
             if esc:
@@ -108,7 +115,7 @@ class Issue:
                 elif c == 'd':  buf += sh('date +%Y-%m-%d')
                 elif c == 't':  buf += sh('date +%H:%M:%S')
                 elif c == 'l':  buf += os.ttyname(2).split('/')[-1]
-                elif c == 'b':  buf += sh("stty | grep -Po 'speed [^ ]* baud;' | cut -d ' ' -f 2")
+                elif c == 'b':  buf += sh("stty < '/dev/%s' | grep -Po 'speed [^ ]* baud;' | cut -d ' ' -f 2" % os.ttyname(2).split('/')[-1])
                 elif c == 'u':  buf += sh('who | wc -l')
                 elif c == 'U':  n = sh('who | wc -l') ; buf += n + (' user' if n == '1' else ' users')
                 elif c == '4':  buf += inet('inet', get_arg() if d == '{' else '')
