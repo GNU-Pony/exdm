@@ -102,3 +102,25 @@ def get_hostname() -> str:
         __util_hostname = hostname
         return hostname
 
+
+def timedwaitpid(pid : int, periods : int, interval : float = 1) -> int:
+    '''
+    Wait for a child process to die for a limited interval
+    
+    @param   pid:int         The ID of the process to wait
+    @param   periods:int     The number of times to try to join with the process
+    @param   interval:float  The number of seconds to sleep between each join
+    @return  :int?           The exit status of the process, `None` if it did not die
+    '''
+    # XXX: we can use alarm
+    import os, time
+    for i in range(periods):
+        try:
+            (reaped, status) = os.waitpid(pid, os.WNOHANG)
+        except:
+            reaped, status = -1, 0
+        if reaped == pid:
+            return status
+        time.sleep(interval)
+    return None
+
